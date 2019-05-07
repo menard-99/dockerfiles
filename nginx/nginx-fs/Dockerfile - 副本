@@ -1,0 +1,101 @@
+FROM alpine:3.7
+
+MAINTAINER menard 2019-03-29
+
+ENV NGINX_VERSION=1.14.2 NGINX_DIR=/wdata/server/nginx/
+
+ADD echo-nginx-module-0.61rc1.tar.gz /usr/lib/nginx/modules/
+ADD lua-nginx-module-0.10.9rc7.tar.gz /usr/lib/nginx/modules/
+ADD nginx-http-concat-master.tar.gz /usr/lib/nginx/modules/
+ADD ngx_devel_kit-0.3.0.tar.gz /usr/lib/nginx/modules/
+
+RUN  CONFIG="\
+		--prefix=/wdata/server/nginx \
+		--sbin-path=/usr/sbin/nginx \
+		--modules-path=/usr/lib/nginx/modules \
+		--conf-path=/wdata/server/nginx/nginx.conf \
+		--user=ngvod \
+		--group=ngww \
+		--with-http_stub_status_module \
+		--with-http_ssl_module \
+		--with-http_v2_module \
+		--with-http_gzip_static_module \
+		--with-ipv6 \
+		--with-http_sub_module \
+		--with-http_dav_module \
+		--with-http_realip_module \
+		--with-http_mp4_module \
+		--with-http_flv_module \
+		--with-debug \
+		--with-openssl=/etc/ssl \
+		#安装非官方模块，模块要解压在nginx源码包路径
+		--add-module=/usr/lib/nginx/modules/echo-nginx-module-0.61rc1  \
+		--add-module=/usr/lib/nginx/modules/lua-nginx-module-0.10.9rc7 \
+		--add-module=/usr/lib/nginx/modules/nginx-http-concat-master \
+		--add-module=/usr/lib/nginx/modules/ngx_devel_kit-0.3.0 \
+	" \
+	&& addgroup -g 1002 -S ngvod \
+	&& adduser ngvod -D -G ngvod -u 1000 -s /sbin/nologin \
+	&& apk add --no-cache --virtual .build-deps \
+		gcc \
+		libc-dev \
+		make \
+		openssl-dev \
+		pcre-dev \
+		zlib-dev \
+		linux-headers \
+		curl \
+		gnupg1 \
+		libxslt-dev \
+		gd-dev \
+		geoip-dev \
+		bash \
+		#安装OpenSSL和第三方模块所需要的lua
+		openssl \
+		luajit \
+		lua-socket \
+		lua5.1 \
+		lua5.1-dev \
+		
+	&& wget -c --tries=0 https://nginx.org/download/nginx-1.14.2.tar.gz -O /tmp/nginx.tar.gz \
+	&& tar xf  /tmp/nginx.tar.gz -C /tmp \
+	&& cd /tmp/nginx-$NGINX_VERSION \
+	&& ./configure $CONFIG \
+	&& make  \   	
+	&& make install \
+	&& rm -rf /tmp/* \
+	&& ln -s /wdata/server/nginx/sbin/nginx /usr/sbin/nginx \
+	&& ln -s /usr/lib/nginx/modules /wdata/server/nginx/modules \
+	&& strip /usr/sbin/nginx* \
+	&& strip /usr/lib/nginx/modules/*.so \
+	
+	# Bring in gettext so we can get `envsubst`, then throw
+	# the rest away. To do this, we need to install `gettext`
+	# then move `envsubst` out of the way so `gettext` can
+	# be deleted completely, then move `envsubst` back.
+	&& apk add --no-cache --virtual .gettext gettext \    
+	\
+	&& runDeps="$( \
+		scanelf --needed --nobanner --format '%n#p' /usr/sbin/nginx /usr/lib/nginx/modules/*.so /tmp/envsubst \
+			| tr ',' '\n' \
+			| sort -u \
+			| awk 'system("[ -e /usr/local/lib/" $1 " ]") == 0 { next } { print "so:" $1 }' \
+	)" \
+	&& apk add --no-cache --virtual .nginx-rundeps $runDeps \
+	&& apk del .build-deps \
+	&& apk del .gettext \
+	\
+	# Bring in tzdata so users could set the timezones through the environment
+	# variables
+	&& apk add --no-cache tzdata \
+	\
+	# forward request and error logs to docker log collector
+	&& ln -sf /dev/stdout /var/log/nginx/access.log \
+	&& ln -sf /dev/stderr /var/log/nginx/error.log
+
+
+EXPOSE 80
+
+STOPSIGNAL SIGTERM
+
+CMD ["nginx", "-g", "daemon off;"]

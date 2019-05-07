@@ -1,0 +1,45 @@
+#author menard
+version: '2'
+services:
+####################jenkins################
+  jenkins:
+    image: "menard/jenkins:mycs"
+    hostname: jenkins
+#container_name定义容器名 
+    container_name: jenkins
+#随容器服务启动而启动
+    restart: always
+#端口映射
+    ports:
+     - '18080:8080'
+     - '50000:50000'
+    extra_hosts:
+     - "jenkins:127.0.0.1"
+
+#volumes定义挂载目录
+    volumes:
+      - /wdata/server/jenkins/jenkins_home/:/var/jenkins_home/
+      - /wdata/script/jenkins/:/wdata/script/
+     # - /wdata/server/jenkins/jenkins.war:/usr/share/jenkins/jenkins.war
+     # - /wdata/server/jenkins/Shanghai:/usr/share/zoneinfo/Asia/Shanghai
+     # - /wdata/server/jenkins/jenkins_home/tools/jdk1.8.0_181/:/usr/lib/jvm/java-1.8.0-openjdk-amd64/
+#时区设置
+    environment:
+      - TZ=Asia/Shanghai
+    network_mode: host
+####################ansible################
+  ansible:
+    image: "ansible:python3"
+    hostname: ansible
+#container_name定义容器名 
+    container_name: ansible
+#随容器服务启动而启动
+    restart: always
+#volumes定义挂载目录
+    #volumes:
+    #  - /wdata/src/Python-3.6.3.tgz:/tmp/Python-3.6.3.tgz
+#时区设置
+    environment:
+      - TZ=Asia/Shanghai
+    network_mode: host
+    tty: true

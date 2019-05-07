@@ -1,0 +1,88 @@
+FROM alpine:3.7
+
+MAINTAINER menard 2019-03-29
+
+ENV NGINX_VERSION=1.14.2 NGINX_DIR=/wdata/server/nginx/ PATH=$PATH:/usr/local/ssl/bin/
+
+ADD echo-nginx-module-0.61rc1.tar.gz /usr/lib/nginx/modules/
+ADD lua-nginx-module-0.10.9rc7.tar.gz /usr/lib/nginx/modules/
+ADD nginx-http-concat-master.tar.gz /usr/lib/nginx/modules/
+ADD ngx_devel_kit-0.3.0.tar.gz /usr/lib/nginx/modules/
+ADD openssl-1.0.2q.tar.gz /tmp/
+ADD nginx-1.14.2.tar.gz /tmp/
+
+RUN  CONFIG="\
+		--prefix=/wdata/server/nginx \
+		--modules-path=/usr/lib/nginx/modules \
+		--user=ngwww \
+		--group=ngwww \
+		--with-http_stub_status_module \
+		--with-http_ssl_module \
+		--with-http_v2_module \
+		--with-http_gzip_static_module \
+		--with-ipv6 \
+		--with-http_sub_module \
+		--with-http_dav_module \
+		--with-http_realip_module \
+		--with-http_mp4_module \
+		--with-http_flv_module \
+		--with-debug \
+		--with-openssl=/usr/local/ssl \
+		#安装非官方模块，模块要解压在nginx源码包路径
+		--add-module=/usr/lib/nginx/modules/echo-nginx-module-0.61rc1  \
+		--add-module=/usr/lib/nginx/modules/lua-nginx-module-0.10.9rc7 \
+		--add-module=/usr/lib/nginx/modules/nginx-http-concat-master \
+		--add-module=/usr/lib/nginx/modules/ngx_devel_kit-0.3.0 \
+	" \
+	&& addgroup -g 1002 -S ngwww \
+	&& adduser ngwww -D -G ngwww -u 1002 -s /sbin/nologin \
+	#安装gcc make等不是nginx所需环境的包可以加入虚拟组，编译安装好nginx后再把虚拟组的包删掉
+	&& apk add --no-cache --virtual mypacks \
+		gcc \
+		libc-dev \
+		make \
+		openssl-dev \
+		zlib-dev \
+		linux-headers \
+		curl \
+		gnupg1 \
+		libxslt-dev \
+		gd-dev \
+		geoip-dev \
+	&& apk add --no-cache \
+		#安装第三方模块所需要的lua
+		bash \
+		pcre-dev \
+		luajit \
+		lua-socket \
+		lua5.1 \
+		lua5.1-dev \
+	
+	#安装OpenSSL
+	&& cd /tmp/openssl-1.0.2q \
+	&& ./config \
+	&& make \
+	&& make install \
+	&& make -t \
+	&& make depend \
+	
+	#安装nginx
+	&& cd /tmp/nginx-$NGINX_VERSION \
+	#解决安装openssl报错问题
+	&& sed -i 's#\.openssl/##g' auto/lib/openssl/conf \
+	&& ./configure $CONFIG \
+	&& make  \   	
+	&& make install \
+	&& rm -rf /tmp/* \
+	&& ln -s /usr/lib/nginx/modules /wdata/server/nginx/modules \
+	&& ln -s /wdata/server/nginx/sbin/nginx /usr/sbin/nginx \
+	&& chown -R ngwww:ngwww /wdata/server/nginx/ \
+	#apk del mypacks删掉虚拟组包，能使容器小很多
+	&& apk del mypacks
+	
+EXPOSE 80
+WORKDIR /wdata/server/nginx/
+
+STOPSIGNAL SIGTERM
+
+CMD ["nginx", "-g", "daemon off;"]
