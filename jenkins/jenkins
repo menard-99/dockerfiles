@@ -61,7 +61,7 @@ JENKINS_PID_FILE="/var/run/jenkins.pid"
 	if [ "$1" = "stop" ]; then exit 0;
 	else exit 1; fi; }
 
-JENKINS_POST=18080;
+JENKINS_POST=17170;
 # Search usable Java as /usr/bin/java might not point to minimal version required by Jenkins.
 # see http://www.nabble.com/guinea-pigs-wanted-----Hudson-RPM-for-RedHat-Linux-td25673707.html
 candidates="
