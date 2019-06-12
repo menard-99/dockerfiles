@@ -1,17 +1,18 @@
-FROM centos:7
+FROM docker.mycs.cn/mycs/centos-ansible:latest
 USER root
 ADD jenkins-2.150.3-1.1.noarch.rpm /tmp
-RUN rpm -ivh /tmp/jenkins-2.150.3-1.1.noarch.rpm  --force --nodeps && rm -rf /tmp/jenkins-2.150.3-1.1.noarch.rpm \
+RUN useradd -u 1000  jenkins \
+	&& rpm -ivh /tmp/jenkins-2.150.3-1.1.noarch.rpm  --force --nodeps && rm -rf /tmp/jenkins-2.150.3-1.1.noarch.rpm \
 	&& yum install -y git \
 	&& yum install -y initscripts \
 	&& ln -s  /var/jenkins_home/tools/jdk1.8.0_181/bin/java /usr/bin/java \
-	&& touch /var/log/jenkins/jenkins.log && chown 999:998 /var/log/jenkins/jenkins.log \
+	&& touch /var/log/jenkins/jenkins.log && chown 1000:1000 /var/log/jenkins/jenkins.log \
 	&& usermod -d /var/jenkins_home/ jenkins \
 	&& echo '* soft core unlimited' >> /etc/security/limits.conf \
-	&& echo '* hard rss  10000' >> /etc/security/limits.conf \
-	&& echo '* soft nproc 2047' >> /etc/security/limits.conf \
-	&& echo '* hard nproc 16384' >> /etc/security/limits.conf \
-	&& echo '* soft nofile 1024' >> /etc/security/limits.conf \
+	#&& echo '* hard rss  10000' >> /etc/security/limits.conf \
+	#&& echo '* soft nproc 2047' >> /etc/security/limits.conf \
+	#&& echo '* hard nproc 16384' >> /etc/security/limits.conf \
+	#&& echo '* soft nofile 1024' >> /etc/security/limits.conf \
 	&& echo '* hard nofile 65536' >> /etc/security/limits.conf \
 	&& ln -s /var/jenkins_home/tools/jenkins.plugins.nodejs.tools.NodeJSInstallation/NodeJS/bin/node /usr/bin/node
 
