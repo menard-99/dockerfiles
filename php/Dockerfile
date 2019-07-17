@@ -78,6 +78,7 @@ RUN  CONFIG="\
 	&& wget -c --tries=0 https://pecl.php.net/get/solr-2.4.0.tgz -O /tmp/solr-2.4.0.tgz \
 	&& wget -c --tries=0 https://pecl.php.net/get/redis-4.2.0.tgz -O /tmp/redis-4.2.0.tgz \
 	&& wget -c --tries=0 https://pecl.php.net/get/memcache-2.2.7.tgz -O /tmp/memcache-2.2.7.tgz \
+	&& wget -c --tries=0 https://pecl.php.net/get/stomp-1.0.5.tgz -O /tmp/stomp-1.0.5.tgz \
 	&& wget -c --tries=0 https://github.com/menard-99/dockerfiles/raw/master/php/libiconv-1.15.tar.gz -O /tmp/libiconv-1.15.tar.gz \
 	&& cd /tmp \
 	&& for tar in *.gz;  do tar xvf $tar -C /tmp; done \
@@ -126,6 +127,13 @@ RUN  CONFIG="\
 	
 	#安装memcache扩展，版本选择稳定版的，3.0.x测试版5.6的PHP用不了
 	&& cd /tmp/memcache-2.2.7 \
+	&& /wdata/server/php/bin/phpize \
+	&& ./configure --with-php-config=/wdata/server/php/bin/php-config \
+	&& make \
+	&& make install \
+	
+	#安装stomp扩展
+	&& cd /tmp/stomp-1.0.5 \
 	&& /wdata/server/php/bin/phpize \
 	&& ./configure --with-php-config=/wdata/server/php/bin/php-config \
 	&& make \
