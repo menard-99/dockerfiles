@@ -1,0 +1,5 @@
+FROM jenkins/jenkins:lts
+USER root
+RUN apt-get update
+RUN apt-get install -y rsync
+CMD java -jar -server -Xmx4096m -Xms1024m -Xmn1024m -XX:PermSize=512m -XX:MaxPermSize=512m /usr/share/jenkins/jenkins.war --httpPort=18080 
