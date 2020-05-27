@@ -1,27 +1,11 @@
-FROM docker.mycs.cn/mycs/centos-ansible:latest
+FROM jenkins/jenkins:lts
 USER root
-ADD jenkins-2.150.3-1.1.noarch.rpm /tmp
-RUN useradd -u 1000  jenkins \
-	&& rpm -ivh /tmp/jenkins-2.150.3-1.1.noarch.rpm  --force --nodeps && rm -rf /tmp/jenkins-2.150.3-1.1.noarch.rpm \
-	&& yum install -y git \
-	&& yum install -y initscripts \
-	&& ln -s  /var/jenkins_home/tools/jdk1.8.0_181/bin/java /usr/bin/java \
-	&& touch /var/log/jenkins/jenkins.log && chown 1000:1000 /var/log/jenkins/jenkins.log \
-	&& usermod -d /var/jenkins_home/ jenkins \
-	&& echo '* soft core unlimited' >> /etc/security/limits.conf \
-	#&& echo '* hard rss  10000' >> /etc/security/limits.conf \
-	#&& echo '* soft nproc 2047' >> /etc/security/limits.conf \
-	#&& echo '* hard nproc 16384' >> /etc/security/limits.conf \
-	#&& echo '* soft nofile 1024' >> /etc/security/limits.conf \
-	&& echo '* hard nofile 65536' >> /etc/security/limits.conf \
-	&& ln -s /var/jenkins_home/tools/jenkins.plugins.nodejs.tools.NodeJSInstallation/NodeJS/bin/node /usr/bin/node
-
-COPY jenkins /etc/init.d/jenkins
-COPY etc/jenkins /etc/sysconfig/jenkins
-COPY docker-entrypoint.sh /usr/sbin/docker-entrypoint.sh
-
-ENV PATH=$PATH:/var/jenkins_home/tools/jdk1.8.0_181/bin:/var/jenkins_home/tools/apache-maven-3.6.0/bin:/var/jenkins_home/tools/jenkins.plugins.nodejs.tools.NodeJSInstallation/NodeJS/bin
-ENV JENKINS_HOME=/var/jenkins_home JAVA_HOME=/var/jenkins_home/tools/jdk1.8.0_181 CLASSPATH=.:${JAVA_HOME}/jre/lib/rt.jar:${JAVA_HOME}/lib/dt.jar:${JAVA_HOME}/lib/tools.jar
+RUN apt-get update && \
+        apt-get install software-properties-common -y && \
+        apt-add-repository ppa:ansible/ansible -y && \
+        apt-get install ansible -y && \
+        apt-get install rsync -y
 
 WORKDIR /var/jenkins_home/
-CMD docker-entrypoint.sh
+user jenkins
+ENV PATH /usr/local/openjdk-8/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/var/jenkins_home/tools/hudson.tasks.Maven_MavenInstallation/Maven36/bin
